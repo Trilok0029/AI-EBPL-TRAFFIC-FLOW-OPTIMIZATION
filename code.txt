@@ -1,0 +1,97 @@
+import random
+import time
+
+# Constants
+DIRECTIONS = ["North", "South", "East", "West"]
+MAX_CYCLE_TIME = 120  # Total seconds for all directions
+MIN_GREEN_TIME = 10   # Minimum green time per direction
+HISTORICAL_WEIGHT = 0.3  # How much past traffic influences current signal
+
+# Simulated historical data for vehicle flow
+historical_avg = {
+    "North": 25,
+    "South": 35,
+    "East": 20,
+    "West": 30
+}
+
+
+def get_real_time_vehicle_data():
+    """
+    Simulates real-time vehicle data from sensors.
+    """
+    return {dir: random.randint(5, 50) for dir in DIRECTIONS}
+
+
+def check_emergency_vehicle():
+    """
+    Random chance of emergency vehicle (1 in 10 chance per cycle).
+    Returns direction if detected, else None.
+    """
+    if random.random() < 0.1:
+        return random.choice(DIRECTIONS)
+    return None
+
+
+def calculate_optimized_green_times(current_data, history_data, emergency_dir=None):
+    """
+    Calculates green signal time for each direction.
+
+    Args:
+    - current_data: Current vehicle count (dict)
+    - history_data: Average historical vehicle count (dict)
+    - emergency_dir: Direction with emergency vehicle (str or None)
+
+    Returns:
+    - Dictionary of green light durations per direction.
+    """
+    if emergency_dir:
+        # Prioritize emergency vehicle direction
+        print(f"🚨 Emergency vehicle detected in {emergency_dir} direction.")
+        return {
+            dir: MAX_CYCLE_TIME if dir == emergency_dir else 0
+            for dir in DIRECTIONS
+        }
+
+    # Combine current and historical data
+    weighted_counts = {
+        dir: (1 - HISTORICAL_WEIGHT) * current_data[dir] + HISTORICAL_WEIGHT * history_data[dir]
+        for dir in DIRECTIONS
+    }
+
+    total_weight = sum(weighted_counts.values())
+    green_times = {}
+
+    for dir in DIRECTIONS:
+        proportion = weighted_counts[dir] / total_weight
+        time_alloc = max(MIN_GREEN_TIME, int(proportion * MAX_CYCLE_TIME))
+        green_times[dir] = time_alloc
+
+    return green_times
+
+
+def display_green_cycle(green_times):
+    """
+    Simulates traffic light cycle display.
+    """
+    for dir in DIRECTIONS:
+        print(f"🟢 {dir} Green Light: {green_times[dir]} seconds")
+        time.sleep(0.5)
+
+
+# ---- Main Simulation Loop ----
+def run_traffic_controller(simulation_rounds=3):
+    for i in range(simulation_rounds):
+        print(f"\n🔄 Traffic Cycle {i + 1}")
+        current_data = get_real_time_vehicle_data()
+        print(f"🚗 Real-time Vehicle Counts: {current_data}")
+
+        emergency_dir = check_emergency_vehicle()
+        green_times = calculate_optimized_green_times(current_data, historical_avg, emergency_dir)
+
+        display_green_cycle(green_times)
+
+
+# Run the system
+run_traffic_controller()
+
